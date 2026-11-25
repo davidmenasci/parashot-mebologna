@@ -125,6 +125,45 @@
   .riga-dettagli{font-family:'Inter', sans-serif; font-size:12.5px; color:#6b5f4f; flex:1; min-width:180px;}
   .riga-anno .link{margin-top:0;}
 
+
+  /* ---------- Ricerca ---------- */
+  #cerca{display:flex; gap:6px; margin:0 22px 14px;}
+  #q{
+    flex:1; min-width:0; font:14px 'Inter', sans-serif; padding:8px 10px; border-radius:3px;
+    border:1px solid rgba(237,228,211,0.3); background:rgba(237,228,211,0.08); color:var(--parchment);
+  }
+  #q::placeholder{color:rgba(237,228,211,0.5);}
+  #q:focus{outline:2px solid var(--bronze-light); outline-offset:1px;}
+  #vai{font:600 12.5px 'Inter', sans-serif; background:var(--bronze); color:#fff; padding:0 12px; border-radius:3px; text-align:center;}
+  #vai:hover{background:#8f6427;}
+  mark{background:#f3d98b; color:inherit; padding:0 1px; border-radius:2px;}
+  .risultato{display:block; text-decoration:none; color:inherit; background:rgba(255,255,255,0.6); border:1px solid var(--line); border-left:4px solid var(--line); padding:14px 20px; margin-bottom:10px;}
+  .risultato:hover{background:#fff; border-left-color:var(--bronze);}
+  .risultato-t{font-family:'Frank Ruhl Libre', serif; font-size:19px; color:var(--ink);}
+  .risultato-d{font-family:'Inter', sans-serif; font-size:12.5px; color:#6b5f4f; margin-top:2px;}
+  .risultato-s{font-size:15px; line-height:1.55; margin-top:8px;}
+  .risultato-n{font-family:'Inter', sans-serif; font-size:11.5px; color:#8a7c66; margin-top:6px;}
+
+  /* ---------- Lettura ---------- */
+  .strumenti{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 30px; font-family:'Inter', sans-serif; font-size:12.5px;}
+  .strumento{
+    background:rgba(255,255,255,0.7); border:1px solid var(--line); padding:7px 12px; border-radius:2px;
+    color:var(--ink); text-decoration:none; text-align:center;
+  }
+  .strumento:hover{background:#fff; border-color:var(--bronze);}
+  .strumento[aria-disabled="true"]{opacity:.4; pointer-events:none;}
+  .testo{
+    --fs:19px; font-size:var(--fs); line-height:1.7; background:#fff; border:1px solid var(--line);
+    padding:34px 40px; box-shadow:0 2px 14px rgba(42,36,32,0.06); max-width:720px; overflow-wrap:break-word;
+  }
+  .testo p{margin:0 0 1.1em;}
+  .testo blockquote{margin:0 0 1.1em; padding-left:18px; border-left:3px solid var(--bronze-light); color:#4a3f35;}
+  .testo h4{font-family:'Frank Ruhl Libre', serif; font-size:1.1em; color:var(--ink); margin:1.4em 0 .5em;}
+  .testo a{color:var(--bronze);}
+  .testo [dir="auto"]{unicode-bidi:plaintext;}
+  .assente{font-family:'Inter', sans-serif; font-size:14px; line-height:1.7; background:#fff; border:1px solid var(--line); border-left:5px solid var(--bronze); padding:22px 26px; max-width:560px;}
+  .fine-lettura{display:flex; justify-content:space-between; gap:10px; margin-top:26px; max-width:720px;}
+
   .nota{font-family:'Inter', sans-serif; font-size:11.5px; color:#a1937c; margin-top:50px; border-top:1px solid var(--line); padding-top:16px; line-height:1.6;}
   .errore{font-family:'Inter', sans-serif; font-size:14px; line-height:1.7; background:#fff; border:1px solid var(--line); border-left:5px solid var(--wine); padding:24px 28px; max-width:560px;}
 
@@ -135,6 +174,7 @@
     h1.titolo{font-size:36px;}
     .badge{margin-top:8px;}
     .scheda{padding:22px 22px;}
+    .testo{padding:22px 20px;}
   }
 </style>
 </head>
@@ -145,6 +185,10 @@
     <div class="brand-title">Parashot MeBologna</div>
     <div class="brand-sub">Commenti alla parashà<br>Comunità Ebraica di Bologna</div>
   </div>
+  <form id="cerca" role="search">
+    <input id="q" type="search" placeholder="Cerca nei commenti…" aria-label="Cerca nei commenti" autocomplete="off">
+    <button id="vai" type="submit">Cerca</button>
+  </form>
   <div class="tabs">
     <button class="tab attivo" id="tab-parasha">Per parashà</button>
     <button class="tab" id="tab-anno">Per anno</button>
@@ -186,7 +230,7 @@ function periodo(a){ return `${a - 3761}–${String(a - 3760).slice(2)}`; }
 function periodoLungo(a){ return `${a - 3761}–${a - 3760}`; }
 function etichettaAnno(a){ return a ? `Anno ebraico ${a}` : "Senza data"; }
 
-let DATI, info = {}, ordine = {}, perParasha = {}, perAnno = {}, anni = [];
+let DATI, info = {}, ordine = {}, perParasha = {}, perAnno = {}, porId = {}, anni = [];
 let vista = "parasha", selP = null, selA = null;
 
 function prepara(d){
@@ -198,6 +242,7 @@ function prepara(d){
   }));
   d.commenti.forEach(c => {
     if(!info[c.parasha]) return;
+    porId[c.id] = c;
     (perParasha[c.parasha] ||= []).push(c);
     (perAnno[c.anno_ebraico || 0] ||= []).push(c);
   });
@@ -241,12 +286,26 @@ function disegnaElenco(){
   }
 }
 
+/* ---------- parti comuni ---------- */
+const riga = c => [dataIt(c.data), c.autore].filter(Boolean).join(" · ");
+const hrefC = (c, q) => `#/c/${c.id}` + (q ? `?q=${encodeURIComponent(q)}` : "");
+function linkLettura(c, classe, testo, q){
+  return c.testo ? el("a", {class: classe, href: hrefC(c, q)}, testo) : null;
+}
+function linkSito(c, classe, testo){
+  const url = linkSicuro(c.url);
+  return url ? el("a", {class: classe, href: url, target: "_blank", rel: "noopener"}, testo) : null;
+}
+function azioni(c, classeLettura, classeSito){
+  return [linkLettura(c, classeLettura, "Leggi il commento →"),
+          linkSito(c, classeSito, c.testo ? "Pagina sul sito ↗" : "Leggi sul sito →")];
+}
+
 /* ---------- vista per parashà ---------- */
 function disegnaParasha(){
   const p = info[selP];
   const lista = perParasha[selP] || [];
   const corrente = selP === DATI.corrente;
-  const main = $("main");
 
   const blocchi = [
     el("div", {class: "eyebrow"}, p.libro),
@@ -258,12 +317,11 @@ function disegnaParasha(){
 
   if(lista.length){
     const c = lista[0];
-    const url = linkSicuro(c.url);
     blocchi.push(el("div", {class: "scheda"},
       el("div", {class: "scheda-tag"}, corrente ? "Commento della settimana" : "Edizione più recente"),
       el("div", {class: "scheda-titolo"}, c.anno_ebraico ? `Anno ebraico ${c.anno_ebraico}` : "Senza data"),
-      el("div", {class: "scheda-riga"}, [dataIt(c.data), c.autore].filter(Boolean).join(" · ")),
-      url ? el("a", {class: "bottone", href: url, target: "_blank", rel: "noopener"}, "Leggi il commento sul sito →") : null));
+      el("div", {class: "scheda-riga"}, riga(c)),
+      ...azioni(c, "bottone", "link"), ));
   } else {
     blocchi.push(el("div", {class: "scheda"}, el("div", {class: "vuoto"},
       "Per questa parashà non risultano ancora commenti sul sito.")));
@@ -271,67 +329,279 @@ function disegnaParasha(){
 
   if(lista.length > 1){
     blocchi.push(el("div", {class: "sezione"}, "Le altre edizioni, anno per anno"));
-    blocchi.push(el("div", {class: "timeline"}, lista.slice(1).map(c => {
-      const url = linkSicuro(c.url);
-      return el("div", {class: "tl-voce"},
+    blocchi.push(el("div", {class: "timeline"}, lista.slice(1).map(c =>
+      el("div", {class: "tl-voce"},
         el("div", {class: "tl-punto"}),
         el("div", {class: "tl-scheda"},
           el("div", {class: "tl-anno"}, c.anno_ebraico || "Senza data",
             c.anno_ebraico ? el("small", {}, periodoLungo(c.anno_ebraico)) : null),
-          el("div", {class: "tl-riga"}, [dataIt(c.data), c.autore].filter(Boolean).join(" · ")),
-          url ? el("a", {class: "link", href: url, target: "_blank", rel: "noopener"}, "Leggi sul sito →") : null));
-    })));
+          el("div", {class: "tl-riga"}, riga(c)),
+          ...azioni(c, "link", "link").map(x => x && (x.style.marginRight = "16px", x)))))));
   }
 
   blocchi.push(nota());
-  main.replaceChildren(...blocchi);
+  $("main").replaceChildren(...blocchi);
 }
 
 /* ---------- vista per anno ---------- */
 function disegnaAnno(){
   const lista = perAnno[selA] || [];
-  const main = $("main");
   const blocchi = [
     el("div", {class: "eyebrow"}, "Tutti i commenti dell'anno, nell'ordine della Torah"),
     el("h1", {class: "titolo"}, etichettaAnno(selA)),
     el("div", {class: "meta"}, [selA ? periodoLungo(selA) : null,
       `${lista.length} ${lista.length === 1 ? "commento" : "commenti"}`].filter(Boolean).join(" · ")),
   ];
-
   lista.forEach(c => {
-    const url = linkSicuro(c.url);
     blocchi.push(el("div", {class: "riga-anno" + (c.parasha === DATI.corrente && c === (perParasha[c.parasha] || [])[0] ? " corrente" : "")},
-      el("button", {class: "riga-nome", title: "Vedi tutte le edizioni di questa parashà", onclick: () => vaiParasha(c.parasha)}, info[c.parasha].nome),
-      el("div", {class: "riga-dettagli"}, [dataIt(c.data), c.autore].filter(Boolean).join(" · ")),
-      url ? el("a", {class: "link", href: url, target: "_blank", rel: "noopener"}, "Leggi sul sito →") : null));
+      el("a", {class: "riga-nome", href: `#/p/${c.parasha}`, title: "Vedi tutte le edizioni di questa parashà", style: "text-decoration:none"}, info[c.parasha].nome),
+      el("div", {class: "riga-dettagli"}, riga(c)),
+      ...azioni(c, "link", "link").map(x => x && (x.style.marginRight = "14px", x))));
   });
-
   blocchi.push(nota());
-  main.replaceChildren(...blocchi);
+  $("main").replaceChildren(...blocchi);
+}
+
+/* ---------- testo: pulizia lato app (secondo filtro, oltre a quello dello script) ---------- */
+const TAG_OK = new Set(["P","BR","STRONG","EM","U","BLOCKQUOTE","UL","OL","LI","H4","SUP","SUB","A"]);
+function pulisciHtml(html){
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const out = document.createDocumentFragment();
+  (function copia(da, a){
+    for(const n of da.childNodes){
+      if(n.nodeType === 3){ a.append(document.createTextNode(n.nodeValue)); continue; }
+      if(n.nodeType !== 1) continue;
+      if(["SCRIPT","STYLE","NOSCRIPT","IFRAME","OBJECT","EMBED","TEMPLATE"].includes(n.tagName)) continue;
+      if(!TAG_OK.has(n.tagName)){ copia(n, a); continue; }
+      const nuovo = document.createElement(n.tagName.toLowerCase());
+      if(["P","H4","LI"].includes(n.tagName)) nuovo.setAttribute("dir", "auto");
+      if(n.tagName === "A"){
+        const h = n.getAttribute("href") || "";
+        if(!/^https?:\/\//i.test(h)){ copia(n, a); continue; }
+        nuovo.setAttribute("href", h); nuovo.setAttribute("target", "_blank"); nuovo.setAttribute("rel", "noopener");
+      }
+      copia(n, nuovo);
+      a.append(nuovo);
+    }
+  })(doc.body, out);
+  return out;
+}
+
+/* ---------- ricerca ---------- */
+const VARIANTI = {a:"aàáâäã", e:"eèéêë", i:"iìíîï", o:"oòóôö", u:"uùúûü", c:"cç", n:"nñ"};
+const NIQQUD = /[֑-ׇ]/g;
+function sorgenteTermine(t){
+  t = t.replace(NIQQUD, "").trim();
+  let out = "";
+  for(const ch of t){
+    if(/\s/.test(ch)){ if(!out.endsWith("\\s+")) out += "\\s+"; continue; }
+    const base = ch.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+    if(VARIANTI[base]) out += "[" + VARIANTI[base] + "]";
+    else if(/[א-ת]/.test(ch)) out += ch + "[\\u0591-\\u05C7]*";
+    else out += ch.replace(/[.*+?^${}()|[\]\\\/-]/g, "\\$&");
+  }
+  return out;
+}
+function terminiDa(q){
+  const t = [];
+  for(const m of q.matchAll(/"([^"]+)"|(\S+)/g)){
+    const v = (m[1] || m[2] || "").trim();
+    if(v.length >= 2 || /[א-ת]/.test(v)) t.push(sorgenteTermine(v));
+  }
+  return t;
+}
+function reEvidenzia(q){
+  const t = terminiDa(q);
+  return t.length ? new RegExp(t.join("|"), "gi") : null;
+}
+function evidenzia(radice, re){
+  const w = document.createTreeWalker(radice, NodeFilter.SHOW_TEXT);
+  const nodi = [];
+  while(w.nextNode()) nodi.push(w.currentNode);
+  let primo = null;
+  nodi.forEach(n => {
+    const t = n.nodeValue; re.lastIndex = 0;
+    let m, ultimo = 0, frag = null;
+    while((m = re.exec(t))){
+      if(m[0] === ""){ re.lastIndex++; continue; }
+      frag ||= document.createDocumentFragment();
+      frag.append(t.slice(ultimo, m.index));
+      const mk = el("mark", {}, m[0]);
+      frag.append(mk);
+      primo ||= mk;
+      ultimo = m.index + m[0].length;
+    }
+    if(frag){ frag.append(t.slice(ultimo)); n.replaceWith(frag); }
+  });
+  return primo;
+}
+
+let CORPUS = null;   // [{c: commento, t: testo semplice}]
+function caricaCorpus(){
+  if(CORPUS) return Promise.resolve(CORPUS);
+  return fetch("data/ricerca.json").then(r => { if(!r.ok) throw new Error(r.status); return r.json(); })
+    .then(righe => (CORPUS = righe.map(([id, t]) => ({c: porId[id], t})).filter(x => x.c)));
+}
+
+function disegnaRicerca(q){
+  const main = $("main");
+  main.replaceChildren(el("div", {class: "eyebrow"}, "Ricerca"), el("h1", {class: "titolo"}, `“${q}”`),
+    el("div", {class: "vuoto"}, "Ricerca in corso…"));
+  const termini = terminiDa(q);
+  if(!termini.length){
+    main.replaceChildren(el("div", {class: "eyebrow"}, "Ricerca"), el("h1", {class: "titolo"}, "Cerca nei commenti"),
+      el("div", {class: "vuoto"}, "Scrivi una o più parole (servono tutte). Usa le virgolette per cercare una frase esatta, ad esempio “terra promessa”. Le maiuscole e gli accenti non contano."));
+    return;
+  }
+  caricaCorpus().then(corpus => {
+    if(location.hash !== "#/cerca/" + encodeURIComponent(q)) return;  // nel frattempo si è cambiata pagina
+    const ognuno = termini.map(s => new RegExp(s, "i"));
+    const conta = termini.map(s => new RegExp(s, "gi"));
+    const trovati = [];
+    for(const x of corpus){
+      if(!ognuno.every(r => r.test(x.t))) continue;
+      const n = conta.reduce((tot, r) => tot + (x.t.match(r) || []).length, 0);
+      trovati.push({x, n});
+    }
+    trovati.sort((a, b) => b.n - a.n || (b.x.c.data || "").localeCompare(a.x.c.data || ""));
+    const re = new RegExp(termini.join("|"), "gi");
+    const blocchi = [
+      el("div", {class: "eyebrow"}, "Ricerca"),
+      el("h1", {class: "titolo"}, `“${q}”`),
+      el("div", {class: "meta"}, trovati.length
+        ? `${trovati.length} ${trovati.length === 1 ? "commento" : "commenti"}` + (trovati.length > 100 ? " (mostrati i primi 100)" : "")
+        : "Nessun commento contiene tutti questi termini."),
+    ];
+    trovati.slice(0, 100).forEach(({x, n}) => {
+      const c = x.c;
+      re.lastIndex = 0;
+      const m = re.exec(x.t);
+      const da = Math.max(0, (m ? m.index : 0) - 80);
+      const a = Math.min(x.t.length, (m ? m.index + m[0].length : 0) + 140);
+      const sn = el("div", {class: "risultato-s"});
+      sn.append((da > 0 ? "… " : "") + x.t.slice(da, a).replace(/\s+/g, " ") + (a < x.t.length ? " …" : ""));
+      evidenzia(sn, new RegExp(termini.join("|"), "gi"));
+      blocchi.push(el("a", {class: "risultato", href: hrefC(c, q)},
+        el("div", {class: "risultato-t"}, info[c.parasha].nome, " ",
+          c.anno_ebraico ? el("small", {style: "font:12px Inter,sans-serif;color:#8a7c66"}, `anno ${c.anno_ebraico}`) : null),
+        el("div", {class: "risultato-d"}, riga(c)),
+        sn,
+        el("div", {class: "risultato-n"}, `${n} ${n === 1 ? "occorrenza" : "occorrenze"}`)));
+    });
+    blocchi.push(nota());
+    main.replaceChildren(...blocchi);
+  }).catch(() => {
+    main.replaceChildren(el("div", {class: "errore"}, el("strong", {}, "La ricerca non è disponibile."), el("br"),
+      "Il file dei testi non è ancora stato generato: avvia un aggiornamento dalla scheda Actions di GitHub."));
+  });
+}
+
+/* ---------- lettura ---------- */
+const DIMENSIONI = [16, 18, 19, 21, 24, 28];
+function dimensione(){
+  let i = 2;
+  try{ const v = parseInt(localStorage.getItem("pmb-dim"), 10); if(v >= 0 && v < DIMENSIONI.length) i = v; }catch(e){}
+  return i;
+}
+function salvaDimensione(i){ try{ localStorage.setItem("pmb-dim", String(i)); }catch(e){} }
+
+function copiaLink(btn, c){
+  const url = location.origin + location.pathname + `#/c/${c.id}`;
+  const fatto = () => { btn.textContent = "Link copiato ✓"; setTimeout(() => btn.textContent = "Copia il link", 2000); };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(fatto, () => prompt("Copia questo indirizzo:", url));
+  } else prompt("Copia questo indirizzo:", url);
+}
+
+function disegnaLettura(c, q){
+  const p = info[c.parasha];
+  const lista = perParasha[c.parasha];
+  const k = lista.indexOf(c);
+  const piuVecchia = lista[k + 1], piuNuova = lista[k - 1];
+  const nav = (x, testo) => x
+    ? el("a", {class: "strumento", href: hrefC(x, q)}, testo)
+    : el("span", {class: "strumento", "aria-disabled": "true"}, testo);
+
+  let dim = dimensione();
+  const corpo = el("div", {class: "testo"}, el("div", {class: "vuoto"}, "Caricamento del testo…"));
+  const applica = () => corpo.style.setProperty("--fs", DIMENSIONI[dim] + "px");
+  applica();
+  const piccolo = el("button", {class: "strumento", title: "Testo più piccolo", onclick: () => { dim = Math.max(0, dim - 1); salvaDimensione(dim); applica(); }}, "A−");
+  const grande = el("button", {class: "strumento", title: "Testo più grande", onclick: () => { dim = Math.min(DIMENSIONI.length - 1, dim + 1); salvaDimensione(dim); applica(); }}, "A+");
+  const copia = el("button", {class: "strumento"}, "Copia il link");
+  copia.onclick = () => copiaLink(copia, c);
+
+  $("main").replaceChildren(
+    el("div", {class: "eyebrow"}, el("a", {href: `#/p/${c.parasha}`, style: "color:inherit"}, `${p.libro} · tutte le edizioni`)),
+    el("h1", {class: "titolo"}, p.nome),
+    el("div", {class: "meta"}, [riga(c), c.anno_ebraico ? `anno ebraico ${c.anno_ebraico}` : null].filter(Boolean).join(" · ")),
+    el("div", {class: "strumenti"},
+      nav(piuVecchia, "← " + (piuVecchia ? (piuVecchia.anno_ebraico || "precedente") : "precedente")),
+      nav(piuNuova, (piuNuova ? (piuNuova.anno_ebraico || "successiva") : "successiva") + " →"),
+      piccolo, grande, copia,
+      linkSito(c, "strumento", "Pagina sul sito ↗")),
+    corpo,
+    el("div", {class: "fine-lettura"}, nav(piuVecchia, "← Edizione precedente"), nav(piuNuova, "Edizione successiva →")),
+    nota());
+
+  fetch(`data/testi/${c.id}.json`).then(r => { if(!r.ok) throw new Error(r.status); return r.json(); })
+    .then(t => {
+      if(location.hash.split("?")[0] !== `#/c/${c.id}`) return;
+      corpo.replaceChildren(pulisciHtml(t.html || ""));
+      const re = q ? reEvidenzia(q) : null;
+      const primo = re ? evidenzia(corpo, re) : null;
+      if(primo) primo.scrollIntoView({block: "center"});
+    })
+    .catch(() => corpo.replaceChildren(el("div", {class: "assente"},
+      "Il testo di questo commento non è ancora disponibile in questa app. ",
+      linkSito(c, "link", "Leggilo sul sito →"))));
 }
 
 function nota(){
   const gen = DATI.generato ? new Date(DATI.generato) : null;
   const quando = gen && !isNaN(gen) ? ` Ultimo aggiornamento dell'archivio: ${gen.getDate()} ${MESI[gen.getMonth()]} ${gen.getFullYear()}.` : "";
   return el("div", {class: "nota"},
-    "I testi dei commenti restano sul sito della Comunità Ebraica di Bologna: questa è una guida di consultazione con il collegamento diretto a ciascuno." + quando);
+    "I commenti sono riprodotti dal sito della Comunità Ebraica di Bologna, a cui spettano i diritti; ogni commento rimanda alla pagina originale." + quando);
 }
 
-/* ---------- navigazione ---------- */
-function vaiParasha(slug){ selP = slug; vista = "parasha"; aggiorna(); }
-function vaiAnno(a){ selA = a; vista = "anno"; aggiorna(); }
-function aggiorna(){
-  disegnaElenco();
-  vista === "parasha" ? disegnaParasha() : disegnaAnno();
+/* ---------- navigazione (l'indirizzo della pagina dice sempre dove si è) ---------- */
+function route(){
+  const h = location.hash.replace(/^#\/?/, "");
+  const [percorso, qs = ""] = h.split("?");
+  const seg = percorso.split("/");
+  const q = new URLSearchParams(qs).get("q") || "";
+  $("q").value = seg[0] === "cerca" ? decodeURIComponent(seg.slice(1).join("/")) : "";
+
+  if(seg[0] === "c" && porId[seg[1]]){
+    const c = porId[seg[1]];
+    selP = c.parasha; vista = "parasha";
+    if(c.anno_ebraico) selA = c.anno_ebraico;
+    disegnaElenco(); disegnaLettura(c, q);
+  } else if(seg[0] === "cerca"){
+    disegnaElenco(); disegnaRicerca(decodeURIComponent(seg.slice(1).join("/")));
+  } else {
+    if(seg[0] === "a" && perAnno[seg[1]]){ selA = Number(seg[1]); vista = "anno"; }
+    else if(seg[0] === "p" && info[seg[1]]){ selP = seg[1]; vista = "parasha"; }
+    disegnaElenco();
+    vista === "parasha" ? disegnaParasha() : disegnaAnno();
+  }
   window.scrollTo({top: 0});
 }
+function vaiParasha(slug){ location.hash = `#/p/${slug}`; }
+function vaiAnno(a){ location.hash = `#/a/${a}`; }
 
-$("tab-parasha").onclick = () => { vista = "parasha"; aggiorna(); };
-$("tab-anno").onclick = () => { vista = "anno"; aggiorna(); };
+$("tab-parasha").onclick = () => vaiParasha(selP);
+$("tab-anno").onclick = () => vaiAnno(selA);
+$("cerca").onsubmit = e => {
+  e.preventDefault();
+  const q = $("q").value.trim();
+  if(q) location.hash = "#/cerca/" + encodeURIComponent(q);
+};
+window.addEventListener("hashchange", () => { if(DATI) route(); });
 
 fetch("data/data.json", {cache: "no-cache"})
   .then(r => { if(!r.ok) throw new Error(r.status); return r.json(); })
-  .then(d => { prepara(d); aggiorna(); })
+  .then(d => { prepara(d); route(); })
   .catch(() => {
     $("elenco").replaceChildren();
     $("main").replaceChildren(el("div", {class: "errore"},
