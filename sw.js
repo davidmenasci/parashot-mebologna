@@ -2,12 +2,12 @@
 // - pagina e icone: salvate all'installazione; la pagina si prende dalla rete se c'è, altrimenti dalla copia
 // - dati e testi (cartella data/): si mostra subito la copia salvata e intanto la si aggiorna
 // - caratteri di Google Fonts: salvati alla prima visita
-const VERSIONE = "v1";
+const VERSIONE = "v2";
 const CACHE = "parashot-" + VERSIONE;
 const CACHE_FONT = "parashot-font";
 const BASE = [
   "./", "index.html", "manifest.webmanifest",
-  "icone/icon-192.png", "icone/icon-512.png", "icone/apple-touch-icon.png",
+  "icone/icona.svg", "icone/icon-192.png", "icone/icon-512.png", "icone/apple-touch-icon.png",
 ];
 
 self.addEventListener("install", e => {
