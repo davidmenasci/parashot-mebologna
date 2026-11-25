@@ -2,14 +2,13 @@ name: Aggiorna e pubblica
 
 on:
   schedule:
-    # Ogni venerdì alle 07:13 UTC (08:13 in inverno, 09:13 in estate in Italia)
     - cron: "13 7 * * 5"
-  workflow_dispatch:        # pulsante "Run workflow" per aggiornare a mano
+  workflow_dispatch:
   push:
-    branches: [main]        # ripubblica quando cambia l'app
+    branches: [main]
 
 permissions:
-  contents: write           # per salvare data/data.json nel repository
+  contents: write
   pages: write
   id-token: write
 
@@ -20,6 +19,7 @@ concurrency:
 jobs:
   pubblica:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -35,20 +35,21 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Raccogli i commenti dal sito
-        run: python scripts/build_data.py data/data.json
+        run: python scripts/build_data.py data
 
       - name: Salva i dati nel repository
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/data.json
-          git diff --staged --quiet || (git commit -m "Aggiorna il catalogo dei commenti" && git push)
+          git add -A data
+          git diff --staged --quiet || (git commit -m "Aggiorna i commenti" && git push)
 
       - name: Prepara il sito
         run: |
-          mkdir -p _site/data
-          cp index.html _site/
-          cp data/data.json _site/data/
+          mkdir -p _site
+          cp index.html manifest.webmanifest sw.js _site/
+          cp -r icone _site/icone
+          cp -r data _site/data
 
       - uses: actions/configure-pages@v5
 
