@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Parashot MeBologna</title>
+<meta name="theme-color" content="#1B2A4A">
+<meta name="description" content="I commenti settimanali alla parashà della Comunità Ebraica di Bologna, di ogni anno.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icone/icon-192.png">
+<link rel="apple-touch-icon" href="icone/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Parashot">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;500;700;900&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -557,11 +566,13 @@ function disegnaLettura(c, q){
       linkSito(c, "link", "Leggilo sul sito →"))));
 }
 
+let statoOffline = "";
 function nota(){
   const gen = DATI.generato ? new Date(DATI.generato) : null;
   const quando = gen && !isNaN(gen) ? ` Ultimo aggiornamento dell'archivio: ${gen.getDate()} ${MESI[gen.getMonth()]} ${gen.getFullYear()}.` : "";
   return el("div", {class: "nota"},
-    "I commenti sono riprodotti dal sito della Comunità Ebraica di Bologna, a cui spettano i diritti; ogni commento rimanda alla pagina originale." + quando);
+    "I commenti sono riprodotti dal sito della Comunità Ebraica di Bologna, a cui spettano i diritti; ogni commento rimanda alla pagina originale." + quando,
+    el("span", {id: "stato-offline"}, statoOffline));
 }
 
 /* ---------- navigazione (l'indirizzo della pagina dice sempre dove si è) ---------- */
@@ -597,11 +608,47 @@ $("cerca").onsubmit = e => {
   const q = $("q").value.trim();
   if(q) location.hash = "#/cerca/" + encodeURIComponent(q);
 };
+/* ---------- uso senza rete ---------- */
+// Dopo la prima visita l'app scarica in sottofondo tutti i testi (circa 5 MB); il service worker li salva.
+function scaricaPerOffline(){
+  if(!("serviceWorker" in navigator) || !DATI) return;
+  const conn = navigator.connection || {};
+  if(conn.saveData) return;
+  const chiave = "pmb-offline";
+  try{ if(localStorage.getItem(chiave) === DATI.generato) { mostraOffline("Disponibile anche senza rete."); return; } }catch(e){}
+  const ids = DATI.commenti.filter(c => c.testo).map(c => c.id);
+  let fatti = 0, errori = 0;
+  const imposta = () => mostraOffline(fatti + errori < ids.length
+    ? `Scarico i testi per l'uso senza rete… ${fatti}/${ids.length}` : (errori ? "Alcuni testi non sono stati salvati per l'uso senza rete." : "Disponibile anche senza rete."));
+  const prossimo = () => {
+    const id = ids.pop();
+    if(id === undefined) return Promise.resolve();
+    return fetch(`data/testi/${id}.json`).then(r => { r.ok ? fatti++ : errori++; }, () => errori++)
+      .then(() => { if(fatti % 25 === 0) imposta(); return prossimo(); });
+  };
+  ids.length && navigator.serviceWorker.ready.then(() => {
+    imposta();
+    return Promise.all([prossimo(), prossimo(), prossimo(), prossimo()]);
+  }).then(() => {
+    fetch("data/ricerca.json").catch(() => {});
+    mostraOffline(errori ? "Alcuni testi non sono stati salvati per l'uso senza rete." : "Disponibile anche senza rete.");
+    if(!errori){ try{ localStorage.setItem(chiave, DATI.generato); }catch(e){} }
+  });
+}
+function mostraOffline(testo){
+  statoOffline = " " + testo;
+  const e = document.getElementById("stato-offline");
+  if(e) e.textContent = statoOffline;
+}
+if("serviceWorker" in navigator){
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+
 window.addEventListener("hashchange", () => { if(DATI) route(); });
 
 fetch("data/data.json", {cache: "no-cache"})
   .then(r => { if(!r.ok) throw new Error(r.status); return r.json(); })
-  .then(d => { prepara(d); route(); })
+  .then(d => { prepara(d); route(); setTimeout(scaricaPerOffline, 3000); })
   .catch(() => {
     $("elenco").replaceChildren();
     $("main").replaceChildren(el("div", {class: "errore"},
