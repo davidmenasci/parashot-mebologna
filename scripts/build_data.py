@@ -18,11 +18,23 @@ import requests
 from bs4 import BeautifulSoup
 from pyluach import dates
 
+try:
+    import lxml  # noqa: F401
+    PARSER = "lxml"
+except ImportError:  # lxml è nei requisiti, ma se manca si usa il parser standard
+    PARSER = "html.parser"
+
 BASE = "https://www.comunitaebraicabologna.it"
 INDICE = BASE + "/it/shabbat/commento-della-parasha"
 USER_AGENT = "ParashotMeBologna/1.0 (catalogo di link ai commenti)"
+INTESTAZIONI = {
+    "User-Agent": USER_AGENT,
+    "Accept": "text/html,application/xhtml+xml;q=0.9,*/*;q=0.5",
+    "Accept-Language": "it-IT,it;q=0.9,en;q=0.5",
+}
 PAUSA = 0.4          # secondi tra una richiesta e l'altra, per non pesare sul sito
 MIN_COMMENTI = 50    # sotto questa soglia il risultato è considerato sospetto
+RIGHE_AUTORE = 12    # quante righe dopo il titolo cercare la riga "Di Nome Cognome"
 
 # Ordine canonico della lettura della Torah (gli slug sono quelli del sito).
 # Categorie non elencate qui vengono messe in coda al loro libro.
@@ -54,6 +66,9 @@ CONNETTIVI = {"de", "del", "della", "di", "da", "dei", "degli", "van", "ben", "b
 RE_CATEGORIA = re.compile(r"/commento-della-parasha/(sefer-[^/]+)(?:/([^/]+))?$")
 RE_ARTICOLO = re.compile(r"/(\d+)-[^/]+$")
 
+ESITO = {}                  # ultimo esito di rete, usato dalla diagnostica
+DIAGNOSTICHE_MOSTRATE = 0   # la diagnostica compare al massimo due volte per esecuzione
+
 
 # ---------------------------------------------------------------- rete
 
@@ -62,9 +77,10 @@ def get(sessione, url):
     for tentativo in range(4):
         try:
             r = sessione.get(url, timeout=30)
+            ESITO.update(url=url, status=r.status_code, finale=r.url, byte=len(r.content))
             if r.status_code == 200:
                 time.sleep(PAUSA)
-                return BeautifulSoup(r.text, "html.parser")
+                return BeautifulSoup(r.text, PARSER)
             if r.status_code == 404:
                 return None
             print(f"  HTTP {r.status_code} su {url}", file=sys.stderr)
@@ -147,13 +163,39 @@ def scopri_categorie(sessione):
 
 
 # ---------------------------------------------------------------- lettura articoli
+# L'estrazione parte dai link agli articoli, non da un tipo preciso di intestazione:
+# così funziona sia se i titoli sono <h2>, sia <h3>, sia se non hanno intestazione.
 
-def contenitore_articolo(h2):
-    """Il blocco HTML più grande che contiene solo questo titolo."""
-    blocco = h2
-    for _ in range(4):
+def url_articolo(pagina, href):
+    """Indirizzo assoluto se il link ha la forma di un articolo (…/1234-titolo), altrimenti None."""
+    url = urljoin(pagina, href).split("#")[0]
+    return url if RE_ARTICOLO.search(urlparse(url).path) else None
+
+
+def scegli_titolo(ancore, url):
+    """Il testo del link che fa da titolo (non 'Leggi tutto…'); in extremis, ricavato dall'indirizzo."""
+    candidati = []
+    for a in ancore:
+        testo = pulisci(a.get_text())
+        if testo and not testo.lower().startswith("leggi"):
+            in_titolo = a.find_parent(["h1", "h2", "h3", "h4"]) is not None
+            candidati.append((in_titolo, len(testo), testo))
+    if candidati:
+        return max(candidati)[2]
+    slug = urlparse(url).path.rsplit("/", 1)[-1]
+    return re.sub(r"^\d+-", "", slug).replace("-", " ").capitalize()
+
+
+def contenitore_articolo(ancora, pagina, url):
+    """Il blocco HTML più grande che contiene solo questo articolo."""
+    blocco = ancora
+    for _ in range(5):
         padre = blocco.parent
-        if padre is None or len(padre.find_all("h2")) > 1:
+        if padre is None or padre.name in ("body", "html", "[document]"):
+            break
+        altri = {u for t in padre.find_all("a", href=True)
+                 if (u := url_articolo(pagina, t["href"])) and u != url}
+        if altri:
             break
         blocco = padre
     return blocco
@@ -162,7 +204,7 @@ def contenitore_articolo(h2):
 def leggi_autore(blocco, titolo):
     righe = [r for r in blocco.get_text("\n", strip=True).splitlines() if r]
     inizio = next((i for i, r in enumerate(righe) if titolo in r), -1)
-    for r in righe[inizio + 1: inizio + 5]:
+    for r in righe[inizio + 1: inizio + 1 + RIGHE_AUTORE]:
         m = re.match(r"Di\s+(.+)$", r)
         if m and autore_plausibile(m.group(1)):
             return m.group(1).strip()
@@ -170,23 +212,49 @@ def leggi_autore(blocco, titolo):
 
 
 def estrai_articoli(soup, pagina):
+    base = urlparse(pagina).path.rstrip("/") + "/"
+    per_url = {}
+    for a in soup.find_all("a", href=True):
+        url = url_articolo(pagina, a["href"])
+        if url and urlparse(url).path.startswith(base):
+            per_url.setdefault(url, []).append(a)
+
     articoli = []
-    for h2 in soup.find_all("h2"):
-        a = h2.find("a", href=True)
-        if not a:
-            continue
-        url = urljoin(pagina, a["href"]).split("#")[0]
-        m = RE_ARTICOLO.search(urlparse(url).path)
-        if not m:
-            continue
-        titolo = pulisci(a.get_text())
+    for url, ancore in per_url.items():
+        titolo = scegli_titolo(ancore, url)
         articoli.append({
-            "id": int(m.group(1)),
+            "id": int(RE_ARTICOLO.search(urlparse(url).path).group(1)),
             "titolo": titolo,
             "url": url,
-            "autore": leggi_autore(contenitore_articolo(h2), titolo),
+            "autore": leggi_autore(contenitore_articolo(ancore[0], pagina, url), titolo),
         })
     return articoli
+
+
+def diagnostica(soup, pagina, articoli):
+    """Scrive nel log cosa vede lo script, per capire perché una pagina dà pochi risultati."""
+    global DIAGNOSTICHE_MOSTRATE
+    if DIAGNOSTICHE_MOSTRATE >= 2:
+        return
+    DIAGNOSTICHE_MOSTRATE += 1
+    p = lambda testo: print("[diagnostica] " + testo)
+    p("-" * 60)
+    p(f"pagina: {pagina}")
+    p(f"esito: HTTP {ESITO.get('status')}, indirizzo finale {ESITO.get('finale')}, "
+      f"{ESITO.get('byte')} byte, parser {PARSER}")
+    p(f"articoli riconosciuti: {len(articoli)}; con autore: {sum(1 for x in articoli if x['autore'])}")
+    for livello in ("h1", "h2", "h3"):
+        testi = [pulisci(h.get_text())[:45] for h in soup.find_all(livello)]
+        p(f"{livello} ({len(testi)}): {testi[:8]}")
+    tutti = [urljoin(pagina, a["href"]) for a in soup.find_all("a", href=True)]
+    p(f"link con 'start=': {[u for u in tutti if 'start=' in u][:6]}")
+    simili = [u for u in tutti if "/commento-della-parasha/" in u and RE_ARTICOLO.search(urlparse(u).path)]
+    p(f"link a forma di articolo: {len(simili)} -> {simili[:8]}")
+    prima = soup.find("a", href=lambda h: bool(h) and RE_ARTICOLO.search(urlparse(h).path or ""))
+    if prima is not None:
+        blocco = prima.find_parent(["article", "div", "li"]) or prima.parent
+        p("HTML attorno al primo articolo: " + pulisci(str(blocco))[:1500])
+    p("-" * 60)
 
 
 def start_di(url):
@@ -211,7 +279,10 @@ def articoli_categoria(sessione, url):
         soup = get(sessione, pagina)
         if soup is None:
             break
-        nuovi = [x for x in estrai_articoli(soup, pagina) if x["url"] not in visti]
+        articoli = estrai_articoli(soup, pagina)
+        if pagina == url and (len(articoli) <= 1 or not any(x["autore"] for x in articoli)):
+            diagnostica(soup, pagina, articoli)
+        nuovi = [x for x in articoli if x["url"] not in visti]
         if not nuovi:
             break
         for x in nuovi:
@@ -268,7 +339,7 @@ def costruisci(sessione):
 
 def main(percorso_uscita):
     sessione = requests.Session()
-    sessione.headers["User-Agent"] = USER_AGENT
+    sessione.headers.update(INTESTAZIONI)
     libri, commenti = costruisci(sessione)
 
     senza_data = sum(1 for c in commenti if not c["data"])
