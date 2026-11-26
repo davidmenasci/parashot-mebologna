@@ -175,6 +175,15 @@
   .assente{font-family:'Inter', sans-serif; font-size:14px; line-height:1.7; background:#fff; border:1px solid var(--line); border-left:5px solid var(--bronze); padding:22px 26px; max-width:560px;}
   .fine-lettura{display:flex; justify-content:space-between; gap:10px; margin-top:26px; max-width:720px;}
 
+
+  /* ---------- Approfondimenti ---------- */
+  .approf{margin-top:46px; max-width:720px;}
+  .approf-voce{display:block; text-decoration:none; color:inherit; background:rgba(255,255,255,0.6); border:1px solid var(--line); border-left:4px solid var(--bronze-light); padding:14px 20px; margin-bottom:10px;}
+  .approf-voce:hover{background:#fff; border-left-color:var(--bronze);}
+  .approf-t{font-family:'Frank Ruhl Libre', serif; font-size:18px; color:var(--ink);}
+  .approf-t span{display:block; font-family:'Inter', sans-serif; font-size:12px; color:var(--bronze); margin-top:2px;}
+  .approf-d{font-family:'Inter', sans-serif; font-size:12.5px; color:#6b5f4f; margin-top:3px; line-height:1.5;}
+
   .nota{font-family:'Inter', sans-serif; font-size:11.5px; color:#a1937c; margin-top:50px; border-top:1px solid var(--line); padding-top:16px; line-height:1.6;}
   .errore{font-family:'Inter', sans-serif; font-size:14px; line-height:1.7; background:#fff; border:1px solid var(--line); border-left:5px solid var(--wine); padding:24px 28px; max-width:560px;}
 
@@ -257,7 +266,6 @@
 <main id="main"><div class="vuoto">Caricamento…</div></main>
 
 <script>
-const SITO = "https://www.comunitaebraicabologna.it/";
 const MESI = ["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"];
 
 const $ = id => document.getElementById(id);
@@ -277,7 +285,6 @@ function el(tag, props = {}, ...figli){
   return e;
 }
 
-function linkSicuro(url){ return typeof url === "string" && url.startsWith(SITO) ? url : null; }
 function dataIt(iso){
   if(!iso) return "data non indicata";
   const [a, m, g] = iso.split("-").map(Number);
@@ -347,16 +354,51 @@ function disegnaElenco(){
 /* ---------- parti comuni ---------- */
 const riga = c => [dataIt(c.data), c.autore].filter(Boolean).join(" · ");
 const hrefC = (c, q) => `#/c/${c.id}` + (q ? `?q=${encodeURIComponent(q)}` : "");
-function linkLettura(c, classe, testo, q){
-  return c.testo ? el("a", {class: classe, href: hrefC(c, q)}, testo) : null;
+function azioni(c, classeLettura){
+  return [c.testo
+    ? el("a", {class: classeLettura, href: hrefC(c)}, "Leggi il commento →")
+    : el("span", {class: "vuoto"}, "Testo non ancora disponibile")];
 }
-function linkSito(c, classe, testo){
-  const url = linkSicuro(c.url);
-  return url ? el("a", {class: classe, href: url, target: "_blank", rel: "noopener"}, testo) : null;
+
+/* ---------- approfondimenti ---------- */
+// Passi della Torah letti in ogni parashà (numerazione ebraica, come su Sefaria).
+const PASSI = {
+  "bereshit":"Genesis.1.1-6.8","noach":"Genesis.6.9-11.32","lekh-lekha":"Genesis.12.1-17.27","va-jera":"Genesis.18.1-22.24",
+  "chaje-sara":"Genesis.23.1-25.18","toledot":"Genesis.25.19-28.9","va-jezze":"Genesis.28.10-32.3","vaishlach":"Genesis.32.4-36.43",
+  "vayeshev":"Genesis.37.1-40.23","mikketz":"Genesis.41.1-44.17","vaiggash":"Genesis.44.18-47.27","vaishi":"Genesis.47.28-50.26",
+  "shemot":"Exodus.1.1-6.1","vaera":"Exodus.6.2-9.35","bo":"Exodus.10.1-13.16","beshallach":"Exodus.13.17-17.16","itro":"Exodus.18.1-20.23",
+  "mishpatim":"Exodus.21.1-24.18","teruma":"Exodus.25.1-27.19","tezzave":"Exodus.27.20-30.10","ki-tissa":"Exodus.30.11-34.35",
+  "va-jakhel-pekude":"Exodus.35.1-40.38",
+  "vaikra":"Leviticus.1.1-5.26","tzav":"Leviticus.6.1-8.36","shemini":"Leviticus.9.1-11.47","tazri-a-mezzora":"Leviticus.12.1-15.33",
+  "achare-mot-kedoshim":"Leviticus.16.1-20.27","emor":"Leviticus.21.1-24.23","behar":"Leviticus.25.1-26.2","bechuccotai":"Leviticus.26.3-27.34",
+  "bemidbar":"Numbers.1.1-4.20","naso":"Numbers.4.21-7.89","beha-alotecha":"Numbers.8.1-12.16","shelach-lekha":"Numbers.13.1-15.41",
+  "korach":"Numbers.16.1-18.32","chuccat":"Numbers.19.1-22.1","balak":"Numbers.22.2-25.9","pinechas":"Numbers.25.10-30.1",
+  "mattot-mas-e":"Numbers.30.2-36.13",
+  "devarim":"Deuteronomy.1.1-3.22","vaetchannan":"Deuteronomy.3.23-7.11","ekev":"Deuteronomy.7.12-11.25","reeh":"Deuteronomy.11.26-16.17",
+  "shofetim":"Deuteronomy.16.18-21.9","ki-tezze":"Deuteronomy.21.10-25.19","ki-tavo":"Deuteronomy.26.1-29.8",
+  "nizzavim-vayelekh":"Deuteronomy.29.9-31.30","haazinu":"Deuteronomy.32.1-32.52"
+};
+const LINK_SHABBAT = "https://www.comunitaebraicabologna.it/it/shabbat/orari-inizio-e-fine-shabbat";
+const LINK_CALENDARIO = "https://www.comunitaebraicabologna.it/it/festivita/calendario";
+
+function voceApprof(titolo, fonte, descrizione, url){
+  return el("a", {class: "approf-voce", href: url, target: "_blank", rel: "noopener noreferrer"},
+    el("div", {class: "approf-t"}, titolo, el("span", {}, fonte + " ↗")),
+    el("div", {class: "approf-d"}, descrizione));
 }
-function azioni(c, classeLettura, classeSito){
-  return [linkLettura(c, classeLettura, "Leggi il commento →"),
-          linkSito(c, classeSito, c.testo ? "Pagina sul sito ↗" : "Leggi sul sito →")];
+function approfondimenti(slug){
+  const passo = PASSI[slug];
+  const voci = [];
+  if(slug){
+    voci.push(voceApprof("Il testo della parashà", "Sefaria",
+      "Il brano in ebraico con la traduzione, e i commenti dei maestri classici.",
+      passo ? `https://www.sefaria.org/${passo}?lang=bi` : "https://www.sefaria.org/"));
+  }
+  voci.push(voceApprof("Orari di inizio e fine Shabbat", "Comunità Ebraica di Bologna",
+    "Gli orari di accensione dei lumi e di uscita dello Shabbat.", LINK_SHABBAT));
+  voci.push(voceApprof("Calendario delle festività", "Comunità Ebraica di Bologna",
+    "Le date delle feste e dei digiuni dell'anno.", LINK_CALENDARIO));
+  return el("div", {class: "approf"}, el("div", {class: "sezione"}, "Approfondimenti"), ...voci);
 }
 
 /* ---------- vista per parashà ---------- */
@@ -382,7 +424,7 @@ function disegnaParasha(){
       ...azioni(c, "bottone", "link"), ));
   } else {
     blocchi.push(el("div", {class: "scheda"}, el("div", {class: "vuoto"},
-      "Per questa parashà non risultano ancora commenti sul sito.")));
+      "Per questa parashà non ci sono ancora commenti in archivio.")));
   }
 
   if(lista.length > 1){
@@ -397,6 +439,7 @@ function disegnaParasha(){
           ...azioni(c, "link", "link").map(x => x && (x.style.marginRight = "16px", x)))))));
   }
 
+  blocchi.push(approfondimenti(selP));
   blocchi.push(nota());
   $("main").replaceChildren(...blocchi);
 }
@@ -416,6 +459,7 @@ function disegnaAnno(){
       el("div", {class: "riga-dettagli"}, riga(c)),
       ...azioni(c, "link", "link").map(x => x && (x.style.marginRight = "14px", x))));
   });
+  blocchi.push(approfondimenti(null));
   blocchi.push(nota());
   $("main").replaceChildren(...blocchi);
 }
@@ -433,11 +477,7 @@ function pulisciHtml(html){
       if(!TAG_OK.has(n.tagName)){ copia(n, a); continue; }
       const nuovo = document.createElement(n.tagName.toLowerCase());
       if(["P","H4","LI"].includes(n.tagName)) nuovo.setAttribute("dir", "auto");
-      if(n.tagName === "A"){
-        const h = n.getAttribute("href") || "";
-        if(!/^https?:\/\//i.test(h)){ copia(n, a); continue; }
-        nuovo.setAttribute("href", h); nuovo.setAttribute("target", "_blank"); nuovo.setAttribute("rel", "noopener");
-      }
+      if(n.tagName === "A"){ copia(n, a); continue; }  // nessun collegamento esterno: resta solo il testo
       copia(n, nuovo);
       a.append(nuovo);
     }
@@ -596,10 +636,10 @@ function disegnaLettura(c, q){
     el("div", {class: "strumenti"},
       nav(piuVecchia, "← " + (piuVecchia ? (piuVecchia.anno_ebraico || "precedente") : "precedente")),
       nav(piuNuova, (piuNuova ? (piuNuova.anno_ebraico || "successiva") : "successiva") + " →"),
-      piccolo, grande, copia,
-      linkSito(c, "strumento", "Pagina sul sito ↗")),
+      piccolo, grande, copia),
     corpo,
     el("div", {class: "fine-lettura"}, nav(piuVecchia, "← Edizione precedente"), nav(piuNuova, "Edizione successiva →")),
+    approfondimenti(c.parasha),
     nota());
 
   fetch(`data/testi/${c.id}.json`).then(r => { if(!r.ok) throw new Error(r.status); return r.json(); })
@@ -611,8 +651,7 @@ function disegnaLettura(c, q){
       if(primo) primo.scrollIntoView({block: "center"});
     })
     .catch(() => corpo.replaceChildren(el("div", {class: "assente"},
-      "Il testo di questo commento non è ancora disponibile in questa app. ",
-      linkSito(c, "link", "Leggilo sul sito →"))));
+      "Il testo di questo commento non è disponibile in questo momento. Se sei senza rete, riprova quando sei online.")));
 }
 
 let statoOffline = "";
@@ -620,7 +659,7 @@ function nota(){
   const gen = DATI.generato ? new Date(DATI.generato) : null;
   const quando = gen && !isNaN(gen) ? ` Ultimo aggiornamento dell'archivio: ${gen.getDate()} ${MESI[gen.getMonth()]} ${gen.getFullYear()}.` : "";
   return el("div", {class: "nota"},
-    "I commenti sono riprodotti dal sito della Comunità Ebraica di Bologna, a cui spettano i diritti; ogni commento rimanda alla pagina originale." + quando,
+    "Commenti alla parashà della Comunità Ebraica di Bologna, di Rav Alberto Sermoneta e Rav Marco Del Monte." + quando,
     el("span", {id: "stato-offline"}, statoOffline));
 }
 
