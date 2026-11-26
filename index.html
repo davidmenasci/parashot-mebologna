@@ -184,6 +184,52 @@
   .approf-t span{display:block; font-family:'Inter', sans-serif; font-size:12px; color:var(--bronze); margin-top:2px;}
   .approf-d{font-family:'Inter', sans-serif; font-size:12.5px; color:#6b5f4f; margin-top:3px; line-height:1.5;}
 
+
+  /* ---------- Info ---------- */
+  .voce-info{text-decoration:none; font-size:14px; font-family:'Inter', sans-serif; margin:0 0 6px;}
+  .info{max-width:720px;}
+  .info p{font-size:17px; line-height:1.65; margin:0 0 1.1em;}
+  .info .sezione{margin-top:38px;}
+  .info-azioni{display:flex; flex-wrap:wrap; gap:10px; margin:6px 0 4px;}
+  .info-azioni .bottone{padding:11px 20px; font-size:14px;}
+  .bottone.secondario{background:transparent; color:var(--ink); border:1px solid var(--ink);}
+  .bottone.secondario:hover{background:var(--ink); color:#fff;}
+  .info-privacy{font-family:'Inter', sans-serif; font-size:13px !important; line-height:1.55 !important; color:#6b5f4f; margin-top:14px !important;}
+  .notifiche .bottone:disabled, .notifiche .bv-btn:disabled{opacity:.6;}
+  .notifiche p{font-family:'Inter', sans-serif; font-size:14.5px !important; margin:10px 0 0 !important;}
+  .info-lista{margin:0 0 1.1em; padding-left:1.2em; font-size:17px; line-height:1.65;}
+  .nota a{color:inherit;}
+
+
+  /* ---------- Presentazione di prima apertura ---------- */
+  #benvenuto{
+    position:fixed; inset:0; z-index:100; background:var(--ink); color:var(--parchment);
+    display:none; flex-direction:column; align-items:center; justify-content:center; padding:24px 22px;
+    background-image:radial-gradient(circle at 20% 10%, rgba(200,154,82,0.14), transparent 45%);
+  }
+  #benvenuto.visibile{display:flex;}
+  .bv-scheda{width:100%; max-width:460px; text-align:center; min-height:380px; display:flex; flex-direction:column; justify-content:center;}
+  .bv-scheda h2{font-family:'Frank Ruhl Libre', serif; font-weight:900; font-size:34px; line-height:1.15; margin:18px 0 10px;}
+  .bv-scheda p{font-size:18px; line-height:1.6; margin:0 0 14px; color:rgba(237,228,211,0.92);}
+  .bv-logo{width:104px; height:104px; border-radius:24px; margin:0 auto; display:block; box-shadow:0 0 0 1px rgba(200,154,82,.35);}
+  .bv-ebraico{font-family:'Frank Ruhl Libre', serif; font-size:26px; color:var(--bronze-light); direction:rtl; margin-top:4px;}
+  .bv-righe{text-align:left; margin-top:18px;}
+  .bv-riga{display:flex; gap:16px; align-items:flex-start; margin-bottom:22px;}
+  .bv-icona{flex-shrink:0; width:44px; height:44px; border-radius:12px; background:rgba(200,154,82,.16); color:var(--bronze-light); display:flex; align-items:center; justify-content:center;}
+  .bv-riga b{display:block; font-family:'Frank Ruhl Libre', serif; font-size:20px; font-weight:700; color:#fff; margin-bottom:2px;}
+  .bv-riga span{font-family:'Inter', sans-serif; font-size:14px; line-height:1.5; color:rgba(237,228,211,0.8);}
+  .bv-passi{font-family:'Inter', sans-serif; font-size:15px; line-height:1.6; text-align:left; background:rgba(237,228,211,0.08); border:1px solid rgba(237,228,211,0.18); border-radius:8px; padding:14px 16px; margin:6px 0 14px;}
+  .bv-scheda p.bv-nota{font-family:'Inter', sans-serif; font-size:13.5px; line-height:1.55; color:var(--bronze-light);}
+  .bv-barra{width:100%; max-width:460px; display:flex; align-items:center; justify-content:space-between; margin-top:22px;}
+  .bv-punti{display:flex; gap:8px;}
+  .bv-punto{width:9px; height:9px; border-radius:50%; background:rgba(237,228,211,.28);}
+  .bv-punto.attivo{background:var(--bronze-light); width:24px; border-radius:6px;}
+  .bv-btn{font-family:'Inter', sans-serif; font-size:15px; font-weight:600; padding:13px 26px; border-radius:6px; background:var(--bronze); color:#fff; text-align:center;}
+  .bv-btn:hover{background:#8f6427;}
+  .bv-salta{font-family:'Inter', sans-serif; font-size:14px; color:rgba(237,228,211,.7); padding:12px 8px;}
+  .bv-salta:hover{color:#fff;}
+  .bv-installa{margin-bottom:14px; width:100%;}
+
   .nota{font-family:'Inter', sans-serif; font-size:11.5px; color:#a1937c; margin-top:50px; border-top:1px solid var(--line); padding-top:16px; line-height:1.6;}
   .errore{font-family:'Inter', sans-serif; font-size:14px; line-height:1.7; background:#fff; border:1px solid var(--line); border-left:5px solid var(--wine); padding:24px 28px; max-width:560px;}
 
@@ -260,8 +306,11 @@
     <button class="tab attivo" id="tab-parasha">Per parashà</button>
     <button class="tab" id="tab-anno">Per anno</button>
   </div>
+  <a class="voce voce-info" id="link-info" href="#/info"><span class="pallino-vuoto"></span><span>Info, contatti e offerte</span></a>
   <div id="elenco"></div>
 </nav>
+
+<div id="benvenuto" role="dialog" aria-modal="true" aria-label="Presentazione di Parashot MeBologna"></div>
 
 <main id="main"><div class="vuoto">Caricamento…</div></main>
 
@@ -399,6 +448,43 @@ function approfondimenti(slug){
   voci.push(voceApprof("Calendario delle festività", "Comunità Ebraica di Bologna",
     "Le date delle feste e dei digiuni dell'anno.", LINK_CALENDARIO));
   return el("div", {class: "approf"}, el("div", {class: "sezione"}, "Approfondimenti"), ...voci);
+}
+
+/* ---------- pagina Info ---------- */
+const LINK_OFFERTE = "https://www.comunitaebraicabologna.it/it/offerte";
+const LINK_CONTATTI = "https://www.comunitaebraicabologna.it/it/contatti";
+function bottoneEsterno(testo, url, secondario){
+  return el("a", {class: "bottone" + (secondario ? " secondario" : ""), href: url, target: "_blank", rel: "noopener noreferrer"}, testo);
+}
+function disegnaInfo(){
+  const gen = DATI.generato ? new Date(DATI.generato) : null;
+  const quando = gen && !isNaN(gen) ? `${gen.getDate()} ${MESI[gen.getMonth()]} ${gen.getFullYear()}` : null;
+  const n = DATI.commenti.length;
+  $("main").replaceChildren(
+    el("div", {class: "eyebrow"}, "Comunità Ebraica di Bologna"),
+    el("h1", {class: "titolo"}, "Info"),
+    el("div", {class: "meta"}, "Parashot MeBologna"),
+    el("div", {class: "info"},
+      el("p", {}, "Parashot MeBologna raccoglie i commenti settimanali alla parashà della Comunità Ebraica di Bologna. Si può leggere il commento della settimana, cambiare parashà e ritrovare i commenti degli anni precedenti, oppure sfogliare tutti i commenti di un anno ebraico, nell'ordine della Torah. La ricerca trova una parola o una frase in tutti i testi."),
+      el("div", {class: "info-azioni"}, el("button", {class: "bottone secondario", onclick: mostraBenvenuto}, "Rivedi la presentazione")),
+      el("div", {class: "sezione"}, "Gli autori"),
+      el("ul", {class: "info-lista"},
+        el("li", {}, "Rav Alberto Sermoneta: i commenti più vecchi."),
+        el("li", {}, "Rav Marco Del Monte: i commenti recenti.")),
+      el("p", {}, "I commenti appartengono ai rispettivi autori e alla Comunità Ebraica di Bologna."),
+      el("div", {class: "sezione"}, "Aggiornamenti"),
+      el("p", {}, `Ogni venerdì l'archivio si aggiorna da solo con il nuovo commento. Ora contiene ${n} commenti${quando ? `; ultimo aggiornamento: ${quando}` : ""}. Dopo la prima apertura l'app funziona anche senza connessione.`),
+      NOTIFICHE_ATTIVE ? el("div", {class: "sezione"}, "Notifiche del venerdì") : null,
+      NOTIFICHE_ATTIVE ? el("p", {}, "Puoi ricevere un avviso sul telefono quando esce il nuovo commento, di solito il venerdì mattina. Le notifiche sono facoltative e si disattivano quando vuoi.") : null,
+      NOTIFICHE_ATTIVE ? controlloNotifiche("info") : null,
+      NOTIFICHE_ATTIVE ? el("p", {class: "info-privacy"}, "Privacy: per recapitare le notifiche l'app usa il servizio OneSignal, che conserva un codice anonimo del tuo dispositivo. Non vengono raccolti nome, email o numero di telefono. Il servizio viene contattato soltanto se attivi le notifiche.") : null,
+      el("div", {class: "sezione"}, "Sostieni la Comunità"),
+      el("p", {}, "Se questi commenti ti sono utili, puoi sostenere le attività della Comunità Ebraica di Bologna con un'offerta."),
+      el("div", {class: "info-azioni"}, bottoneEsterno("Fai un'offerta ↗", LINK_OFFERTE)),
+      el("div", {class: "sezione"}, "Contatti"),
+      el("p", {}, "Per informazioni sulla Comunità, per segnalare un errore in un testo o per scrivere a chi cura l'app, usa i contatti della Comunità."),
+      el("div", {class: "info-azioni"}, bottoneEsterno("Contatta la Comunità ↗", LINK_CONTATTI, true))),
+    nota());
 }
 
 /* ---------- vista per parashà ---------- */
@@ -659,8 +745,208 @@ function nota(){
   const gen = DATI.generato ? new Date(DATI.generato) : null;
   const quando = gen && !isNaN(gen) ? ` Ultimo aggiornamento dell'archivio: ${gen.getDate()} ${MESI[gen.getMonth()]} ${gen.getFullYear()}.` : "";
   return el("div", {class: "nota"},
-    "Commenti alla parashà della Comunità Ebraica di Bologna, di Rav Alberto Sermoneta e Rav Marco Del Monte." + quando,
+    "Commenti alla parashà della Comunità Ebraica di Bologna, di Rav Alberto Sermoneta e Rav Marco Del Monte." + quando + " ",
+    el("a", {href: "#/info"}, "Info, contatti e offerte"),
     el("span", {id: "stato-offline"}, statoOffline));
+}
+
+/* ---------- notifiche push ---------- */
+// Il servizio esterno (OneSignal) viene contattato solo se la persona sceglie di attivare le notifiche.
+let osPronto = null;
+function caricaOneSignal(){
+  if(osPronto) return osPronto;
+  osPronto = new Promise((ok, no) => {
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    const base = new URL("./", location.href).pathname;
+    window.OneSignalDeferred.push(async OneSignal => {
+      try{
+        await OneSignal.init({
+          appId: ONESIGNAL_APP_ID,
+          serviceWorkerPath: (base + "push/onesignal/OneSignalSDKWorker.js").replace(/^\//, ""),  // senza barra iniziale, come richiede OneSignal
+          serviceWorkerParam: {scope: base + "push/onesignal/"},
+          notifyButton: {enable: false},
+          allowLocalhostAsSecureOrigin: true
+        });
+        ok(OneSignal);
+      }catch(e){ no(e); }
+    });
+    const sc = document.createElement("script");
+    sc.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
+    sc.defer = true;
+    sc.onerror = () => no(new Error("sdk"));
+    document.head.append(sc);
+  });
+  osPronto.catch(() => { osPronto = null; });
+  return osPronto;
+}
+const notificheSupportate = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+function notificheScelte(){ try{ return localStorage.getItem("pmb-notifiche") === "1"; }catch(e){ return false; } }
+function ricordaNotifiche(v){ try{ localStorage.setItem("pmb-notifiche", v ? "1" : "0"); }catch(e){} }
+function statoNotifiche(){
+  if(!notificheSupportate()) return "non-supportate";
+  if(Notification.permission === "denied") return "negate";
+  return (notificheScelte() && Notification.permission === "granted") ? "attive" : "spente";
+}
+async function attivaNotifiche(){
+  const OneSignal = await caricaOneSignal();
+  await OneSignal.Notifications.requestPermission();
+  if(Notification.permission !== "granted") return false;
+  await OneSignal.User.PushSubscription.optIn();
+  ricordaNotifiche(true);
+  return true;
+}
+async function disattivaNotifiche(){
+  const OneSignal = await caricaOneSignal();
+  await OneSignal.User.PushSubscription.optOut();
+  ricordaNotifiche(false);
+}
+// Pulsante e messaggio di stato. variante: "info" (pagina chiara) oppure "bv" (presentazione scura).
+function controlloNotifiche(variante){
+  const box = el("div", {class: "notifiche"});
+  const classeBtn = variante === "bv" ? "bv-btn bv-installa" : "bottone";
+  const classeSec = variante === "bv" ? "bv-btn bv-installa" : "bottone secondario";
+  const messaggio = testo => el(variante === "bv" ? "p" : "p", {class: variante === "bv" ? "bv-nota" : "", role: "status"}, testo);
+  function disegna(extra){
+    const st = statoNotifiche();
+    const parti = [];
+    if(st === "non-supportate"){
+      parti.push(messaggio("Questo browser non permette le notifiche. Su iPhone, aggiungi prima l'app alla schermata Home (Condividi → Aggiungi a Home) e riaprila da lì."));
+    } else if(st === "negate"){
+      parti.push(messaggio("Le notifiche sono bloccate per questa app: puoi riattivarle dalle impostazioni del telefono o del browser."));
+    } else if(st === "attive"){
+      parti.push(messaggio("Notifiche attive: riceverai un avviso il venerdì, quando esce il nuovo commento."));
+      const b = el("button", {class: classeSec}, "Disattiva le notifiche");
+      b.onclick = async () => { b.disabled = true; try{ await disattivaNotifiche(); disegna(); }catch(e){ disegna("Non è stato possibile disattivarle: riprova più tardi."); } };
+      parti.push(b);
+    } else {
+      const b = el("button", {class: classeBtn}, "Attiva le notifiche del venerdì");
+      b.onclick = async () => {
+        b.disabled = true; b.textContent = "Un momento…";
+        try{ const ok = await attivaNotifiche(); disegna(ok ? "" : ""); }
+        catch(e){ disegna("Non è stato possibile attivare le notifiche: riprova più tardi."); }
+      };
+      parti.push(b);
+    }
+    if(extra) parti.push(messaggio(extra));
+    box.replaceChildren(...parti);
+  }
+  disegna();
+  return box;
+}
+// chi le ha già attivate: il servizio si ricollega in silenzio all'apertura
+function ricollegaNotifiche(){
+  if(NOTIFICHE_ATTIVE && notificheSupportate() && notificheScelte() && Notification.permission === "granted") caricaOneSignal().catch(() => {});
+}
+
+/* ---------- presentazione di prima apertura ---------- */
+// Notifiche push (OneSignal). Per attivarle basta incollare qui l'"App ID" di OneSignal (non è un segreto).
+// Finché è vuoto, l'app non mostra pulsanti e non contatta nessun servizio esterno.
+const ONESIGNAL_APP_ID = "f1dcd1f6-7774-4f20-ac1c-cbe6fe8eec84";
+const NOTIFICHE_ATTIVE = !!ONESIGNAL_APP_ID;
+let promptInstallazione = null;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); promptInstallazione = e; });
+
+function haVistoBenvenuto(){ try{ return localStorage.getItem("pmb-benvenuto") === "1"; }catch(e){ return false; } }
+function segnaBenvenuto(){ try{ localStorage.setItem("pmb-benvenuto", "1"); }catch(e){} }
+function piattaforma(){
+  const ua = navigator.userAgent || "";
+  if(/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return "ios";
+  if(/Android/.test(ua)) return "android";
+  return "altro";
+}
+function giaInstallata(){
+  return (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+}
+const svgIcona = percorso => {
+  const e = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  e.setAttribute("width", "24"); e.setAttribute("height", "24"); e.setAttribute("viewBox", "0 0 24 24");
+  e.setAttribute("fill", "none"); e.setAttribute("stroke", "currentColor"); e.setAttribute("stroke-width", "1.9");
+  e.setAttribute("stroke-linecap", "round"); e.setAttribute("stroke-linejoin", "round"); e.setAttribute("aria-hidden", "true");
+  e.innerHTML = percorso;
+  return e;
+};
+const ICONE_BV = {
+  libro: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"/><path d="M4 5.5v16"/><path d="M9 8h7"/>',
+  anni: '<rect x="3" y="7" width="14" height="14" rx="2"/><path d="M7 3h12a2 2 0 0 1 2 2v12"/>',
+  cerca: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/>'
+};
+
+function schermateBenvenuto(){
+  const riga = (icona, titolo, testo) => el("div", {class: "bv-riga"},
+    el("div", {class: "bv-icona"}, svgIcona(ICONE_BV[icona])),
+    el("div", {}, el("b", {}, titolo), el("span", {}, testo)));
+
+  const s1 = el("div", {class: "bv-scheda"},
+    el("img", {class: "bv-logo", src: "icone/icona.svg", alt: ""}),
+    el("h2", {}, "Parashot MeBologna"),
+    el("div", {class: "bv-ebraico", lang: "he"}, "שבת שלום"),
+    el("p", {style: "margin-top:18px"}, "Il commento settimanale alla parashà della Comunità Ebraica di Bologna, insieme a tutti quelli degli anni passati."));
+
+  const s2 = el("div", {class: "bv-scheda"},
+    el("h2", {}, "Come si usa"),
+    el("div", {class: "bv-righe"},
+      riga("libro", "Leggi il commento della settimana", "Lo trovi subito, appena apri l'app."),
+      riga("anni", "Cambia parashà e confronta gli anni", "Per ogni parashà, i commenti di tutti gli anni, uno dopo l'altro."),
+      riga("cerca", "Cerca una parola o una frase", "In tutti i commenti. Dopo la prima apertura funziona anche senza rete.")));
+
+  const p = piattaforma();
+  const s3 = el("div", {class: "bv-scheda"}, el("h2", {}, "Tienila con te"));
+  if(giaInstallata()){
+    s3.append(el("p", {}, "L'app è già sulla schermata Home del tuo telefono."));
+  } else if(p === "ios"){
+    s3.append(el("p", {}, "Per avere l'icona sulla Home dell'iPhone:"),
+      el("div", {class: "bv-passi"}, "1. Apri questa pagina con ", el("b", {}, "Safari"), ".", el("br"),
+        "2. Tocca ", el("b", {}, "Condividi"), " (il quadrato con la freccia).", el("br"),
+        "3. Scegli ", el("b", {}, "Aggiungi a Home"), "."));
+  } else if(p === "android"){
+    s3.append(el("p", {}, "Per avere l'icona sulla schermata Home:"));
+    const btn = el("button", {class: "bv-btn bv-installa", id: "bv-installa", style: promptInstallazione ? "" : "display:none"}, "Installa l'app");
+    btn.onclick = () => { if(promptInstallazione){ promptInstallazione.prompt(); promptInstallazione = null; btn.style.display = "none"; } };
+    s3.append(btn, el("div", {class: "bv-passi"}, "Con Chrome: tocca i ", el("b", {}, "tre puntini"), " in alto a destra, poi ", el("b", {}, "Installa app"), "."));
+  } else {
+    s3.append(el("p", {}, "Dal telefono, apri questo indirizzo e aggiungi l'app alla schermata Home: si apre a tutto schermo, come una vera app."));
+  }
+  if(NOTIFICHE_ATTIVE){
+    s3.append(el("p", {class: "bv-nota"}, "Ogni venerdì puoi ricevere un avviso sul telefono quando esce il nuovo commento."), controlloNotifiche("bv"));
+  } else {
+    s3.append(el("p", {class: "bv-nota"}, "Presto: un avviso sul telefono ogni venerdì, quando esce il nuovo commento."));
+  }
+  return [s1, s2, s3];
+}
+
+let bvIndice = 0;
+function disegnaBenvenuto(){
+  const box = $("benvenuto");
+  const schermate = schermateBenvenuto();
+  const ultimo = bvIndice === schermate.length - 1;
+  const avanti = el("button", {class: "bv-btn", id: "bv-avanti"}, ultimo ? "Inizia" : "Avanti");
+  avanti.onclick = () => { if(ultimo) chiudiBenvenuto(); else { bvIndice++; disegnaBenvenuto(); } };
+  const salta = el("button", {class: "bv-salta"}, ultimo ? "" : "Salta");
+  salta.onclick = chiudiBenvenuto;
+  box.replaceChildren(
+    schermate[bvIndice],
+    el("div", {class: "bv-barra"},
+      ultimo ? el("span") : salta,
+      el("div", {class: "bv-punti", "aria-hidden": "true"}, schermate.map((_, i) => el("span", {class: "bv-punto" + (i === bvIndice ? " attivo" : "")}))),
+      avanti));
+  avanti.focus();
+}
+function mostraBenvenuto(){
+  bvIndice = 0;
+  $("benvenuto").classList.add("visibile");
+  document.body.style.overflow = "hidden";
+  disegnaBenvenuto();
+}
+function chiudiBenvenuto(){
+  segnaBenvenuto();
+  $("benvenuto").classList.remove("visibile");
+  document.body.style.overflow = "";
+}
+document.addEventListener("keydown", e => { if(e.key === "Escape" && $("benvenuto").classList.contains("visibile")) chiudiBenvenuto(); });
+// compare solo alla prima apertura, e non quando si arriva da un link a un commento o a una ricerca
+function mostraBenvenutoSeServe(){
+  const h = location.hash;
+  if(!haVistoBenvenuto() && (h === "" || h === "#" || h === "#/")) mostraBenvenuto();
 }
 
 /* ---------- navigazione (l'indirizzo della pagina dice sempre dove si è) ---------- */
@@ -677,6 +963,8 @@ function route(){
     selP = c.parasha; vista = "parasha";
     if(c.anno_ebraico) selA = c.anno_ebraico;
     disegnaElenco(); disegnaLettura(c, q);
+  } else if(seg[0] === "info"){
+    disegnaElenco(); disegnaInfo();
   } else if(seg[0] === "cerca"){
     disegnaElenco(); disegnaRicerca(decodeURIComponent(seg.slice(1).join("/")));
   } else {
@@ -699,6 +987,7 @@ function chiudiMenu(){
 $("apri-menu").onclick = () => apriMenu(false);
 $("apri-cerca").onclick = () => apriMenu(true);
 $("chiudi-menu").onclick = chiudiMenu;
+$("link-info").onclick = chiudiMenu;
 $("velo").onclick = chiudiMenu;
 document.addEventListener("keydown", e => { if(e.key === "Escape") chiudiMenu(); });
 
@@ -753,7 +1042,7 @@ window.addEventListener("hashchange", () => { if(DATI) route(); });
 
 fetch("data/data.json", {cache: "no-cache"})
   .then(r => { if(!r.ok) throw new Error(r.status); return r.json(); })
-  .then(d => { prepara(d); route(); setTimeout(scaricaPerOffline, 3000); })
+  .then(d => { prepara(d); route(); mostraBenvenutoSeServe(); ricollegaNotifiche(); setTimeout(scaricaPerOffline, 3000); })
   .catch(() => {
     $("elenco").replaceChildren();
     $("main").replaceChildren(el("div", {class: "errore"},
