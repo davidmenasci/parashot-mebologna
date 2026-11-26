@@ -230,6 +230,22 @@
   .bv-salta:hover{color:#fff;}
   .bv-installa{margin-bottom:14px; width:100%;}
 
+
+  /* ---------- Box dalla Comunità ---------- */
+  .box-com-griglia{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:34px; max-width:720px;}
+  .box-com{display:flex; flex-direction:column; text-decoration:none; padding:20px 22px; border-radius:2px; border:1px solid var(--line);}
+  .box-com .box-t{font-family:'Frank Ruhl Libre', serif; font-size:21px; line-height:1.2;}
+  .box-com .box-d{font-family:'Inter', sans-serif; font-size:13.5px; line-height:1.55; margin:8px 0 16px; flex:1;}
+  .box-com .box-az{font-family:'Inter', sans-serif; font-size:13px; font-weight:600;}
+  .box-com.offerta{background:var(--bronze); border-color:var(--bronze); color:#fff;}
+  .box-com.offerta .box-d{color:rgba(255,255,255,.92);}
+  .box-com.offerta:hover{background:#8f6427;}
+  .box-com.casher{background:#fff; color:var(--ink); border-left:5px solid var(--bronze-light);}
+  .box-com.casher .box-d{color:#6b5f4f;}
+  .box-com.casher .box-az{color:var(--bronze);}
+  .box-com.casher:hover{border-color:var(--bronze);}
+  @media (max-width:820px){ .box-com-griglia{grid-template-columns:1fr;} }
+
   .nota{font-family:'Inter', sans-serif; font-size:11.5px; color:#a1937c; margin-top:50px; border-top:1px solid var(--line); padding-top:16px; line-height:1.6;}
   .errore{font-family:'Inter', sans-serif; font-size:14px; line-height:1.7; background:#fff; border:1px solid var(--line); border-left:5px solid var(--wine); padding:24px 28px; max-width:560px;}
 
@@ -487,6 +503,17 @@ function disegnaInfo(){
     nota());
 }
 
+/* ---------- box dalla Comunità ---------- */
+const LINK_CASHER = "https://www.comunitaebraicabologna.it/it/cultura/casherut/prodotti-kosher";
+function boxComunita(){
+  const box = (classe, titolo, testo, url, azione) => el("a",
+    {class: "box-com " + classe, href: url, target: "_blank", rel: "noopener noreferrer"},
+    el("div", {class: "box-t"}, titolo), el("div", {class: "box-d"}, testo), el("span", {class: "box-az"}, azione));
+  return el("div", {class: "box-com-griglia"},
+    box("offerta", "Sostieni la Comunità", "Un'offerta aiuta la Comunità Ebraica di Bologna e le sue attività.", LINK_OFFERTE, "Fai un'offerta ↗"),
+    box("casher", "Prodotti casher", "I prodotti in vendita nei supermercati italiani considerati casher dall'Assemblea Rabbinica Italiana, con le foto delle confezioni.", LINK_CASHER, "Apri l'elenco ↗"));
+}
+
 /* ---------- vista per parashà ---------- */
 function disegnaParasha(){
   const p = info[selP];
@@ -526,6 +553,7 @@ function disegnaParasha(){
   }
 
   blocchi.push(approfondimenti(selP));
+  blocchi.push(boxComunita());
   blocchi.push(nota());
   $("main").replaceChildren(...blocchi);
 }
@@ -546,6 +574,7 @@ function disegnaAnno(){
       ...azioni(c, "link", "link").map(x => x && (x.style.marginRight = "14px", x))));
   });
   blocchi.push(approfondimenti(null));
+  blocchi.push(boxComunita());
   blocchi.push(nota());
   $("main").replaceChildren(...blocchi);
 }
@@ -726,6 +755,7 @@ function disegnaLettura(c, q){
     corpo,
     el("div", {class: "fine-lettura"}, nav(piuVecchia, "← Edizione precedente"), nav(piuNuova, "Edizione successiva →")),
     approfondimenti(c.parasha),
+    boxComunita(),
     nota());
 
   fetch(`data/testi/${c.id}.json`).then(r => { if(!r.ok) throw new Error(r.status); return r.json(); })
